@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VLR Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    width: 320px;
+    padding: 10px;
+  }
+
+  :root {
+    --mauve-dark: #8B1E2D;
+    --pill-bg: rgba(163, 38, 56, 0.75);
+    --text: #F5F7FA;
+    --cream: #F5F7FA;
+    --white: #F5F7FA;
+  }
+
+  .card {
+    background: var(--pill-bg);
+    border-radius: 40px;
+    padding: 10px 14px 12px;
+    position: relative;
+    box-shadow: 0 4px 0px #5a0f1a, 0 6px 16px rgba(90,20,30,0.35);
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .rank-badge {
+    width: 54px; height: 54px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .rank-badge img {
+    width: 54px; height: 54px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  }
+  .rank-info { flex: 1; }
+  .rank-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: var(--white);
+    text-shadow: 1px 2px 0 rgba(0,0,0,0.25);
+    line-height: 1;
+  }
+  .rank-sub {
+    font-size: 11px;
+    color: var(--cream);
+    opacity: 0.85;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .rr-section { margin-bottom: 10px; }
+  .rr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .rr-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    color: var(--cream);
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .rr-delta {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    padding: 1px 9px;
+    border-radius: 20px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+  }
+  .rr-delta.positive { background: #4caf82; color: #fff; }
+  .rr-delta.negative { background: #c94f5a; color: #fff; }
+  .rr-delta.neutral  { background: #888;    color: #fff; }
+
+  .rr-bar-track {
+    background: var(--mauve-dark);
+    border-radius: 10px;
+    height: 14px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    position: relative;
+  }
+  .rr-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #f7c59f, #f4a261);
+    transition: width 1s cubic-bezier(0.34,1.2,0.64,1);
+    position: relative;
+  }
+  .rr-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 6px; right: 6px; height: 4px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 4px;
+  }
+  .rr-bar-value {
+    position: absolute;
+    right: 7px; top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 10px;
+    color: var(--mauve-dark);
+    pointer-events: none;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .stat-chip {
+    background: var(--mauve-dark);
+    border-radius: 14px;
+    padding: 4px 10px;
+    text-align: center;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+  }
+  .stat-chip .val {
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    color: var(--white);
+    line-height: 1.1;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+  }
+  .stat-chip .lbl {
+    font-size: 9px;
+    color: var(--cream);
+    opacity: 0.8;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .win-chip .val { color: #a8edbd; }
+  .kd-chip  .val { color: #a8edbd; }
+
+  .error-state {
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    color: var(--cream);
+    opacity: 0.7;
+    text-align: center;
+    padding: 8px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="main-card">
+  <div class="rank-row">
+    <div class="rank-badge">
+      <img id="rank-icon" src="https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/0/smallicon.png" alt="rank" />
+    </div>
+    <div class="rank-info">
+      <div class="rank-name" id="rank-name">Loading...</div>
+      <div class="rank-sub"  id="rank-sub">Connecting...</div>
+    </div>
+  </div>
+
+  <div class="rr-section">
+    <div class="rr-header">
+      <span class="rr-label">RR Progress</span>
+      <span class="rr-delta neutral" id="rr-delta">+0 RR</span>
+    </div>
+    <div class="rr-bar-track">
+      <div class="rr-bar-fill" id="rr-fill" style="width:0%"></div>
+      <span class="rr-bar-value" id="rr-value">0 / 100</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-chip win-chip">
+      <div class="val" id="wl-val">0W 0L</div>
+      <div class="lbl">Today W/L</div>
+    </div>
+    <div class="stat-chip kd-chip">
+      <div class="val" id="kd-val">0.00</div>
+      <div class="lbl">K/D Today</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── READ CONFIG FROM URL PARAMS ──────────────────────────
+const params = new URLSearchParams(window.location.search);
+const cfg = {
+  name:      params.get('name')      || '',
+  tag:       params.get('tag')       || '',
+  key:       params.get('key')       || '',
+  region:    params.get('region')    || 'na',
+  tz:        params.get('tz')        || 'America/Toronto',
+  cardColor: params.get('cardColor') || '#A32638',
+  chipColor: params.get('chipColor') || '#8B1E2D',
+  textColor: params.get('textColor') || '#F5F7FA',
+  barColor:  params.get('barColor')  || '#f4a261',
+  opacity:   params.get('opacity')   || '75',
+};
+
+// ── APPLY COLORS ─────────────────────────────────────────
+function applyColors() {
+  const { r, g, b } = hexToRgb(cfg.cardColor);
+  const opacity = parseInt(cfg.opacity) / 100;
+  const card = document.querySelector('.card');
+  if (card) card.style.background = `rgba(${r},${g},${b},${opacity})`;
+
+  document.querySelectorAll('.stat-chip').forEach(c => c.style.background = cfg.chipColor);
+  document.querySelector('.rr-bar-track').style.background = cfg.chipColor;
+  document.querySelector('.rr-bar-value').style.color      = cfg.chipColor;
+  document.querySelector('.rr-bar-fill').style.background  = `linear-gradient(90deg, ${cfg.barColor}cc, ${cfg.barColor})`;
+
+  const textEls = document.querySelectorAll('.rank-name, .rank-sub, .rr-label, .stat-chip .lbl');
+  textEls.forEach(el => el.style.color = cfg.textColor);
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return { r, g, b };
+}
+
+// ── RANK ICON MAP ────────────────────────────────────────
+const RANK_ICON = {
+  'Unranked':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/0/smallicon.png',
+  'Iron 1':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/3/smallicon.png',
+  'Iron 2':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/4/smallicon.png',
+  'Iron 3':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/5/smallicon.png',
+  'Bronze 1':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/6/smallicon.png',
+  'Bronze 2':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/7/smallicon.png',
+  'Bronze 3':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/8/smallicon.png',
+  'Silver 1':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/9/smallicon.png',
+  'Silver 2':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/10/smallicon.png',
+  'Silver 3':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/11/smallicon.png',
+  'Gold 1':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/12/smallicon.png',
+  'Gold 2':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/13/smallicon.png',
+  'Gold 3':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/14/smallicon.png',
+  'Platinum 1':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/15/smallicon.png',
+  'Platinum 2':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/16/smallicon.png',
+  'Platinum 3':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/17/smallicon.png',
+  'Diamond 1':   'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/18/smallicon.png',
+  'Diamond 2':   'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/19/smallicon.png',
+  'Diamond 3':   'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/20/smallicon.png',
+  'Ascendant 1': 'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/21/smallicon.png',
+  'Ascendant 2': 'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/22/smallicon.png',
+  'Ascendant 3': 'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/23/smallicon.png',
+  'Immortal 1':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/24/smallicon.png',
+  'Immortal 2':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/25/smallicon.png',
+  'Immortal 3':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/26/smallicon.png',
+  'Radiant':     'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/27/smallicon.png',
+};
+
+function rankIconUrl(tier) {
+  if (RANK_ICON[tier]) return RANK_ICON[tier];
+  for (const [k, v] of Object.entries(RANK_ICON)) {
+    if (k.toLowerCase() === (tier || '').toLowerCase()) return v;
+  }
+  return RANK_ICON['Unranked'];
+}
+
+// ── FETCH ────────────────────────────────────────────────
+async function fetchData() {
+  if (!cfg.name || !cfg.tag || !cfg.key) {
+    document.getElementById('rank-name').textContent = 'No config';
+    document.getElementById('rank-sub').textContent  = 'Generate a link first';
+    return;
+  }
+
+  const headers = { 'Authorization': cfg.key };
+  const base    = 'https://api.henrikdev.xyz/valorant';
+  const region  = cfg.region;
+
+  try {
+    const [mmrRes, matchRes] = await Promise.all([
+      fetch(`${base}/v2/mmr/${region}/${encodeURIComponent(cfg.name)}/${encodeURIComponent(cfg.tag)}`, { headers }),
+      fetch(`${base}/v1/lifetime/matches/${region}/${encodeURIComponent(cfg.name)}/${encodeURIComponent(cfg.tag)}?mode=competitive&size=20`, { headers })
+    ]);
+
+    const mmrJson   = await mmrRes.json();
+    const matchJson = await matchRes.json();
+
+    if (mmrJson.status === 200) {
+      const d   = mmrJson.data.current_data;
+      const tier = d.currenttierpatched || 'Unranked';
+      const rr   = d.ranking_in_tier    || 0;
+      const lastRrChange = mmrJson.data.by_season?.ACT_WIN_PROGRESSION_CHANGE ?? d.mmr_change_to_last_game ?? 0;
+
+      document.getElementById('rank-icon').src            = rankIconUrl(tier);
+      document.getElementById('rank-name').textContent    = tier;
+      document.getElementById('rank-sub').textContent     = `${rr} RR`;
+      document.getElementById('rr-fill').style.width      = rr + '%';
+      document.getElementById('rr-value').textContent     = `${rr} / 100`;
+
+      const deltaEl = document.getElementById('rr-delta');
+      if (lastRrChange > 0) {
+        deltaEl.textContent = `+${lastRrChange} RR`;
+        deltaEl.className = 'rr-delta positive';
+      } else if (lastRrChange < 0) {
+        deltaEl.textContent = `${lastRrChange} RR`;
+        deltaEl.className = 'rr-delta negative';
+      } else {
+        deltaEl.textContent = `±0 RR`;
+        deltaEl.className = 'rr-delta neutral';
+      }
+    }
+
+    if (matchJson.status === 200 && matchJson.data?.length > 0) {
+      const tz    = cfg.tz;
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+      const todayMatches = matchJson.data.filter(m => {
+        const d = new Date(m.meta.started_at);
+        return d.toLocaleDateString('en-CA', { timeZone: tz }) === today;
+      });
+
+      let wins = 0, losses = 0, kills = 0, deaths = 0;
+
+      for (const m of todayMatches) {
+        const me = m.stats;
+        if (!me) continue;
+        kills  += me.kills  || 0;
+        deaths += me.deaths || 0;
+        const team = m.stats?.team;
+        const won  = team === 'Red'
+          ? m.teams?.red  > m.teams?.blue
+          : m.teams?.blue > m.teams?.red;
+        if (won) wins++; else losses++;
+      }
+
+      document.getElementById('wl-val').textContent = `${wins}W ${losses}L`;
+      const kd = deaths > 0 ? (kills / deaths).toFixed(2) : kills.toFixed(2);
+      document.getElementById('kd-val').textContent = kd;
+    }
+
+  } catch(e) {
+    document.getElementById('rank-name').textContent = 'API Error';
+    document.getElementById('rank-sub').textContent  = 'Check your link';
+    console.error(e);
+  }
+}
+
+applyColors();
+fetchData();
+setInterval(fetchData, 60000);
+</script>
+</body>
+</html>

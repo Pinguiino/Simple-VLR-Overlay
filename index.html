@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple VLR Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --dark:      #0d0608;
+  --red-deep:  #8B1E2D;
+  --red-mid:   #A32638;
+  --red-light: rgba(163, 38, 56, 0.75);
+  --text:      #F5F7FA;
+  --muted:     rgba(245,247,250,0.55);
+  --accent:    #f4a261;
+  --green:     #4caf82;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Nunito', sans-serif;
+  background: var(--dark);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ── SPLIT LAYOUT ── */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100vh;
+}
+
+/* ── LEFT PANEL ── */
+.left {
+  background: var(--dark);
+  padding: 52px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.left::before {
+  content: '';
+  position: absolute;
+  top: -120px; left: -120px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(163,38,56,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.left::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; right: -80px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(163,38,56,0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+.brand-dot {
+  width: 10px; height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.brand-name {
+  font-family: 'Fredoka One', cursive;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.headline {
+  font-family: 'Fredoka One', cursive;
+  font-size: 42px;
+  line-height: 1.05;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.headline span {
+  color: var(--accent);
+}
+
+.sub {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 36px;
+  max-width: 340px;
+}
+
+/* ── FORM ── */
+.form { display: flex; flex-direction: column; gap: 12px; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.field input, .field select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  appearance: none;
+}
+.field input:focus, .field select:focus {
+  border-color: rgba(163,38,56,0.6);
+  background: rgba(163,38,56,0.08);
+}
+.field input::placeholder { color: rgba(245,247,250,0.25); }
+.field select option { background: #1a0810; color: var(--text); }
+
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.generate-btn {
+  background: var(--red-mid);
+  border: none;
+  border-radius: 12px;
+  padding: 13px 0;
+  font-family: 'Fredoka One', cursive;
+  font-size: 16px;
+  color: var(--text);
+  cursor: pointer;
+  margin-top: 4px;
+  box-shadow: 0 4px 0 var(--red-deep), 0 8px 20px rgba(163,38,56,0.3);
+  transition: transform 0.1s, box-shadow 0.1s;
+  letter-spacing: 0.5px;
+}
+.generate-btn:hover { background: #b52a3a; }
+.generate-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--red-deep), 0 4px 10px rgba(163,38,56,0.2);
+}
+
+/* ── LINK OUTPUT ── */
+.link-box {
+  display: none;
+  margin-top: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  gap: 10px;
+  align-items: center;
+}
+.link-box.visible { display: flex; }
+.link-url {
+  flex: 1;
+  font-size: 11px;
+  color: var(--accent);
+  word-break: break-all;
+  line-height: 1.4;
+  font-weight: 700;
+}
+.copy-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  color: var(--red-deep);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+.copy-btn:hover { opacity: 0.85; }
+
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.hint strong { color: var(--accent); }
+
+.api-link {
+  display: block;
+  text-align: center;
+  margin-top: 16px;
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+  position: relative;
+  z-index: 1;
+}
+.api-link:hover { color: var(--accent); }
+
+/* ── RIGHT PANEL ── */
+.right {
+  background: var(--red-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* background texture */
+.right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,0,0,0.3) 0%, transparent 50%);
+}
+
+.right-label {
+  position: absolute;
+  top: 32px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(245,247,250,0.35);
+}
+
+.preview-wrap {
+  position: relative;
+  z-index: 1;
+  transform: scale(1.1);
+}
+
+/* ── OVERLAY CARD (mirrored from overlay.html) ── */
+.ov-card {
+  width: 300px;
+  background: rgba(163, 38, 56, 0.75);
+  border-radius: 36px;
+  padding: 10px 14px 12px;
+  box-shadow: 0 4px 0px #5a0f1a, 0 6px 24px rgba(0,0,0,0.5);
+  animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes popIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.ov-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ov-rank-badge {
+  width: 50px; height: 50px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ov-rank-badge img {
+  width: 50px; height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
+.ov-rank-info { flex: 1; }
+.ov-rank-name {
+  font-family: 'Fredoka One', cursive;
+  font-size: 19px;
+  color: #F5F7FA;
+  text-shadow: 1px 2px 0 rgba(0,0,0,0.25);
+  line-height: 1;
+}
+.ov-rank-sub {
+  font-size: 11px;
+  color: #F5F7FA;
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+.ov-rr-section { margin-bottom: 8px; }
+.ov-rr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.ov-rr-label {
+  font-family: 'Fredoka One', cursive;
+  font-size: 11px;
+  color: #F5F7FA;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.ov-rr-delta {
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  padding: 1px 9px;
+  border-radius: 20px;
+  background: #888;
+  color: #fff;
+}
+.ov-rr-delta.positive { background: #4caf82; }
+.ov-rr-delta.negative { background: #c94f5a; }
+.ov-rr-delta.neutral  { background: #888; }
+.ov-bar-track {
+  background: #8B1E2D;
+  border-radius: 10px;
+  height: 13px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  position: relative;
+}
+.ov-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f7c59f, #f4a261);
+  position: relative;
+  transition: width 0.8s ease;
+}
+.ov-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 6px; right: 6px; height: 3px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 4px;
+}
+.ov-bar-value {
+  position: absolute;
+  right: 7px; top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Fredoka One', cursive;
+  font-size: 9px;
+  color: #8B1E2D;
+  pointer-events: none;
+}
+
+.ov-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.ov-chip {
+  background: #8B1E2D;
+  border-radius: 13px;
+  padding: 4px 10px;
+  text-align: center;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+}
+.ov-chip .val {
+  font-family: 'Fredoka One', cursive;
+  font-size: 15px;
+  line-height: 1.1;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+.ov-chip .lbl {
+  font-size: 9px;
+  color: #F5F7FA;
+  opacity: 0.75;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.ov-wl  .val { color: #a8edbd; }
+.ov-kd  .val { color: #a8edbd; }
+
+/* ── CUSTOMIZE PANEL ── */
+.customize-btn {
+  position: absolute;
+  bottom: 70px;
+  z-index: 10;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(245,247,250,0.15);
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  color: rgba(245,247,250,0.6);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
+}
+.customize-btn:hover {
+  background: rgba(0,0,0,0.5);
+  color: var(--text);
+  border-color: rgba(245,247,250,0.3);
+}
+
+.customize-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  background: rgba(10, 3, 5, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(245,247,250,0.08);
+  padding: 20px 24px 24px;
+  z-index: 20;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.34,1.2,0.64,1);
+}
+.customize-panel.open {
+  transform: translateY(0);
+}
+
+.customize-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.customize-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+.customize-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.2s;
+}
+.customize-close:hover { color: var(--text); }
+
+.color-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.color-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.color-field label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.color-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 5px 10px 5px 6px;
+  transition: border-color 0.2s;
+}
+.color-input-row:focus-within {
+  border-color: rgba(163,38,56,0.5);
+}
+.color-input-row input[type="color"] {
+  width: 26px; height: 26px;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+.color-input-row input[type="text"] {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.opacity-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.opacity-field label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+}
+.opacity-field label span { color: var(--accent); }
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.reset-btn {
+  background: none;
+  border: 1px solid rgba(245,247,250,0.12);
+  border-radius: 8px;
+  padding: 7px 0;
+  width: 100%;
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+.reset-btn:hover {
+  border-color: rgba(245,247,250,0.25);
+  color: var(--text);
+}
+</style>
+</head>
+<body>
+
+<div class="split">
+
+  <!-- ── LEFT: SETTINGS ── -->
+  <div class="left">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <span class="brand-name">Simple VLR Overlay</span>
+    </div>
+
+    <h1 class="headline">Your stats.<br><span>Your stream.</span></h1>
+    <p class="sub">Fill in your details to generate a personal OBS overlay link.</p>
+
+    <div class="form">
+      <div class="row-2">
+        <div class="field">
+          <label>Riot Name</label>
+          <input id="inp-name" placeholder="YourName" />
+        </div>
+        <div class="field">
+          <label>Tag (no #)</label>
+          <input id="inp-tag" placeholder="NA1" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Henrik API Key</label>
+        <input id="inp-key" type="password" placeholder="HDEV-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Region</label>
+          <select id="inp-region" onchange="updatePreview()">
+            <option value="na">North America</option>
+            <option value="eu">Europe</option>
+            <option value="ap">Asia Pacific</option>
+            <option value="kr">Korea</option>
+            <option value="latam">Latin America</option>
+            <option value="br">Brazil</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Timezone</label>
+          <select id="inp-tz">
+            <option value="America/Toronto">Eastern</option>
+            <option value="America/Chicago">Central</option>
+            <option value="America/Denver">Mountain</option>
+            <option value="America/Los_Angeles">Pacific</option>
+            <option value="America/Sao_Paulo">Brazil</option>
+            <option value="Europe/London">London</option>
+            <option value="Europe/Paris"> Central EU</option>
+            <option value="Europe/Athens">Eastern EU</option>
+            <option value="Asia/Tokyo">Japan</option>
+            <option value="Asia/Seoul">Korea</option>
+            <option value="Australia/Sydney">Sydney</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="generate-btn" onclick="generateLink()">Generate OBS Link</button>
+
+      <div class="link-box" id="link-box">
+        <span class="link-url" id="link-url"></span>
+        <button class="copy-btn" onclick="copyLink()">Copy</button>
+      </div>
+      <p class="hint" id="link-hint" style="display:none">
+        In OBS: <strong>Add Browser Source</strong> → paste this link → Width: <strong>320</strong> Height: <strong>200</strong>
+      </p>
+    </div>
+
+    <a href="https://api.henrikdev.xyz/dashboard/" target="_blank" class="api-link">
+      Get a Henrik API key — Discord login required →
+    </a>
+  </div>
+
+  <!-- ── RIGHT: PREVIEW ── -->
+  <div class="right">
+    <span class="right-label">Live Preview</span>
+
+    <div class="preview-wrap">
+      <div class="ov-card">
+        <!-- Rank row -->
+        <div class="ov-rank-row">
+          <div class="ov-rank-badge">
+            <img id="prev-icon" src="https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/0/smallicon.png" alt="rank" />
+          </div>
+          <div class="ov-rank-info">
+            <div class="ov-rank-name" id="prev-rank">Unranked</div>
+            <div class="ov-rank-sub" id="prev-name">0 RR</div>
+          </div>
+        </div>
+
+        <!-- RR bar -->
+        <div class="ov-rr-section">
+          <div class="ov-rr-header">
+            <span class="ov-rr-label">RR Progress</span>
+            <span class="ov-rr-delta" id="prev-delta">+0 RR</span>
+          </div>
+          <div class="ov-bar-track">
+            <div class="ov-bar-fill" id="prev-fill" style="width:0%"></div>
+            <span class="ov-bar-value">0 / 100</span>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="ov-stats-row">
+          <div class="ov-chip ov-wl">
+            <div class="val" id="prev-wl">0W 0L</div>
+            <div class="lbl">Today W/L</div>
+          </div>
+          <div class="ov-chip ov-kd">
+            <div class="val" id="prev-kd">0.00</div>
+            <div class="lbl">K/D Today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customize button -->
+    <button class="customize-btn" onclick="toggleCustomize()">✦ Customize</button>
+
+    <!-- Customize slide-up panel -->
+    <div class="customize-panel" id="customize-panel">
+      <div class="customize-header">
+        <span class="customize-title">Customize Colors</span>
+        <button class="customize-close" onclick="toggleCustomize()">✕</button>
+      </div>
+
+      <div class="color-grid">
+        <div class="color-field">
+          <label>Card Background</label>
+          <div class="color-input-row">
+            <input type="color" id="c-card" value="#A32638" oninput="syncColor('c-card','t-card')" />
+            <input type="text"  id="t-card" value="#A32638" oninput="syncText('t-card','c-card')" maxlength="7" />
+          </div>
+        </div>
+        <div class="color-field">
+          <label>Chip Background</label>
+          <div class="color-input-row">
+            <input type="color" id="c-chip" value="#8B1E2D" oninput="syncColor('c-chip','t-chip')" />
+            <input type="text"  id="t-chip" value="#8B1E2D" oninput="syncText('t-chip','c-chip')" maxlength="7" />
+          </div>
+        </div>
+        <div class="color-field">
+          <label>Text Color</label>
+          <div class="color-input-row">
+            <input type="color" id="c-text" value="#F5F7FA" oninput="syncColor('c-text','t-text')" />
+            <input type="text"  id="t-text" value="#F5F7FA" oninput="syncText('t-text','c-text')" maxlength="7" />
+          </div>
+        </div>
+        <div class="color-field">
+          <label>RR Bar Color</label>
+          <div class="color-input-row">
+            <input type="color" id="c-bar" value="#f4a261" oninput="syncColor('c-bar','t-bar')" />
+            <input type="text"  id="t-bar" value="#f4a261" oninput="syncText('t-bar','c-bar')" maxlength="7" />
+          </div>
+        </div>
+      </div>
+
+      <div class="opacity-field">
+        <label>Card Opacity <span id="opacity-val">75%</span></label>
+        <input type="range" id="c-opacity" min="10" max="100" value="75" oninput="updateOpacity()" />
+      </div>
+
+      <button class="reset-btn" onclick="resetColors()">Reset to Default</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE_URL = window.location.href.replace('index.html', '').replace(/\/$/, '');
+
+// ── DEFAULTS ────────────────────────────────────────────
+const DEFAULTS = {
+  cardColor:   '#A32638',
+  chipColor:   '#8B1E2D',
+  textColor:   '#F5F7FA',
+  barColor:    '#f4a261',
+  opacity:     75,
+};
+let colors = { ...DEFAULTS };
+let fetchTimer = null;
+
+// ── RANK ICON MAP ────────────────────────────────────────
+const RANK_ICON = {
+  'Unranked':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/0/smallicon.png',
+  'Iron 1':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/3/smallicon.png',
+  'Iron 2':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/4/smallicon.png',
+  'Iron 3':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/5/smallicon.png',
+  'Bronze 1':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/6/smallicon.png',
+  'Bronze 2':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/7/smallicon.png',
+  'Bronze 3':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/8/smallicon.png',
+  'Silver 1':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/9/smallicon.png',
+  'Silver 2':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/10/smallicon.png',
+  'Silver 3':    'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/11/smallicon.png',
+  'Gold 1':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/12/smallicon.png',
+  'Gold 2':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/13/smallicon.png',
+  'Gold 3':      'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/14/smallicon.png',
+  'Platinum 1':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/15/smallicon.png',
+  'Platinum 2':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/16/smallicon.png',
+  'Platinum 3':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/17/smallicon.png',
+  'Diamond 1':   'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/18/smallicon.png',
+  'Diamond 2':   'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/19/smallicon.png',
+  'Diamond 3':   'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/20/smallicon.png',
+  'Ascendant 1': 'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/21/smallicon.png',
+  'Ascendant 2': 'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/22/smallicon.png',
+  'Ascendant 3': 'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/23/smallicon.png',
+  'Immortal 1':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/24/smallicon.png',
+  'Immortal 2':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/25/smallicon.png',
+  'Immortal 3':  'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/26/smallicon.png',
+  'Radiant':     'https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/27/smallicon.png',
+};
+
+function rankIconUrl(tier) {
+  if (RANK_ICON[tier]) return RANK_ICON[tier];
+  for (const [k, v] of Object.entries(RANK_ICON)) {
+    if (k.toLowerCase() === (tier || '').toLowerCase()) return v;
+  }
+  return RANK_ICON['Unranked'];
+}
+
+// ── AUTO-FETCH TRIGGER ───────────────────────────────────
+function onFieldChange() {
+  const name = document.getElementById('inp-name').value.trim();
+  const tag  = document.getElementById('inp-tag').value.trim();
+  const key  = document.getElementById('inp-key').value.trim();
+
+  // Debounce API call by 800ms so it doesn't fire on every keystroke
+  clearTimeout(fetchTimer);
+  if (name && tag && key) {
+    fetchTimer = setTimeout(fetchPreview, 800);
+  }
+}
+
+// ── LIVE PREVIEW FETCH ───────────────────────────────────
+async function fetchPreview() {
+  const name   = document.getElementById('inp-name').value.trim();
+  const tag    = document.getElementById('inp-tag').value.trim();
+  const key    = document.getElementById('inp-key').value.trim();
+  const region = document.getElementById('inp-region').value;
+  const tz     = document.getElementById('inp-tz').value;
+
+  if (!name || !tag || !key) return;
+
+  const headers = { 'Authorization': key };
+  const base    = 'https://api.henrikdev.xyz/valorant';
+
+  // Show loading state
+  document.getElementById('prev-rank').textContent = 'Loading...';
+  document.getElementById('prev-name').textContent = '...';
+
+  try {
+    const [mmrRes, matchRes] = await Promise.all([
+      fetch(`${base}/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers }),
+      fetch(`${base}/v1/lifetime/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?mode=competitive&size=20`, { headers })
+    ]);
+
+    const mmrJson   = await mmrRes.json();
+    const matchJson = await matchRes.json();
+
+    if (mmrJson.status === 200) {
+      const d    = mmrJson.data.current_data;
+      const tier = d.currenttierpatched || 'Unranked';
+      const rr   = d.ranking_in_tier    || 0;
+      const lastRrChange = mmrJson.data.by_season?.ACT_WIN_PROGRESSION_CHANGE ?? d.mmr_change_to_last_game ?? 0;
+
+      document.getElementById('prev-icon').src          = rankIconUrl(tier);
+      document.getElementById('prev-rank').textContent  = tier;
+      document.getElementById('prev-name').textContent  = `${rr} RR`;
+      document.getElementById('prev-fill').style.width  = rr + '%';
+      document.querySelector('.ov-bar-value').textContent = `${rr} / 100`;
+
+      const deltaEl = document.getElementById('prev-delta');
+      if (lastRrChange > 0) {
+        deltaEl.textContent = `+${lastRrChange} RR`;
+        deltaEl.className = 'ov-rr-delta positive';
+      } else if (lastRrChange < 0) {
+        deltaEl.textContent = `${lastRrChange} RR`;
+        deltaEl.className = 'ov-rr-delta negative';
+      } else {
+        deltaEl.textContent = `±0 RR`;
+        deltaEl.className = 'ov-rr-delta neutral';
+      }
+    } else {
+      document.getElementById('prev-rank').textContent = 'Not found';
+      document.getElementById('prev-name').textContent = 'Check name/tag/region';
+    }
+
+    if (matchJson.status === 200 && matchJson.data?.length > 0) {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+      const todayMatches = matchJson.data.filter(m => {
+        return new Date(m.meta.started_at).toLocaleDateString('en-CA', { timeZone: tz }) === today;
+      });
+
+      let wins = 0, losses = 0, kills = 0, deaths = 0;
+      for (const m of todayMatches) {
+        const me = m.stats;
+        if (!me) continue;
+        kills  += me.kills  || 0;
+        deaths += me.deaths || 0;
+        const team = me.team;
+        const won  = team === 'Red'
+          ? m.teams?.red  > m.teams?.blue
+          : m.teams?.blue > m.teams?.red;
+        if (won) wins++; else losses++;
+      }
+
+      document.getElementById('prev-wl').textContent = `${wins}W ${losses}L`;
+      document.getElementById('prev-kd').textContent = deaths > 0
+        ? (kills / deaths).toFixed(2)
+        : kills.toFixed(2);
+    }
+
+  } catch(e) {
+    document.getElementById('prev-rank').textContent = 'API Error';
+    document.getElementById('prev-name').textContent = 'Check your key';
+    console.error(e);
+  }
+}
+
+// ── CUSTOMIZE PANEL ─────────────────────────────────────
+function toggleCustomize() {
+  document.getElementById('customize-panel').classList.toggle('open');
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return { r, g, b };
+}
+
+function applyColors() {
+  const card     = document.querySelector('.ov-card');
+  const chips    = document.querySelectorAll('.ov-chip');
+  const barFill  = document.querySelector('.ov-bar-fill');
+  const barTrack = document.querySelector('.ov-bar-track');
+  const barValue = document.querySelector('.ov-bar-value');
+  const textEls  = document.querySelectorAll('.ov-rank-name, .ov-rank-sub, .ov-rr-label, .ov-chip .lbl');
+
+  const { r, g, b } = hexToRgb(colors.cardColor);
+  const opacity = colors.opacity / 100;
+
+  if (card) card.style.background = `rgba(${r},${g},${b},${opacity})`;
+  chips.forEach(c => c.style.background = colors.chipColor);
+  if (barTrack) barTrack.style.background = colors.chipColor;
+  if (barValue) barValue.style.color      = colors.chipColor;
+  if (barFill)  barFill.style.background  = `linear-gradient(90deg, ${colors.barColor}cc, ${colors.barColor})`;
+  textEls.forEach(el => el.style.color = colors.textColor);
+}
+
+function syncColor(colorId, textId) {
+  const val = document.getElementById(colorId).value;
+  document.getElementById(textId).value = val;
+  const key = colorId === 'c-card' ? 'cardColor'
+            : colorId === 'c-chip' ? 'chipColor'
+            : colorId === 'c-text' ? 'textColor' : 'barColor';
+  colors[key] = val;
+  applyColors();
+}
+
+function syncText(textId, colorId) {
+  let val = document.getElementById(textId).value;
+  if (!val.startsWith('#')) val = '#' + val;
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    document.getElementById(colorId).value = val;
+    const key = colorId === 'c-card' ? 'cardColor'
+              : colorId === 'c-chip' ? 'chipColor'
+              : colorId === 'c-text' ? 'textColor' : 'barColor';
+    colors[key] = val;
+    applyColors();
+  }
+}
+
+function updateOpacity() {
+  const val = document.getElementById('c-opacity').value;
+  colors.opacity = parseInt(val);
+  document.getElementById('opacity-val').textContent = val + '%';
+  applyColors();
+}
+
+function resetColors() {
+  colors = { ...DEFAULTS };
+  document.getElementById('c-card').value    = DEFAULTS.cardColor;
+  document.getElementById('t-card').value    = DEFAULTS.cardColor;
+  document.getElementById('c-chip').value    = DEFAULTS.chipColor;
+  document.getElementById('t-chip').value    = DEFAULTS.chipColor;
+  document.getElementById('c-text').value    = DEFAULTS.textColor;
+  document.getElementById('t-text').value    = DEFAULTS.textColor;
+  document.getElementById('c-bar').value     = DEFAULTS.barColor;
+  document.getElementById('t-bar').value     = DEFAULTS.barColor;
+  document.getElementById('c-opacity').value = DEFAULTS.opacity;
+  document.getElementById('opacity-val').textContent = DEFAULTS.opacity + '%';
+  applyColors();
+}
+
+// ── GENERATE LINK ────────────────────────────────────────
+function generateLink() {
+  const name   = document.getElementById('inp-name').value.trim();
+  const tag    = document.getElementById('inp-tag').value.trim();
+  const key    = document.getElementById('inp-key').value.trim();
+  const region = document.getElementById('inp-region').value;
+  const tz     = document.getElementById('inp-tz').value;
+
+  if (!name || !tag || !key) {
+    alert('Please fill in your Riot Name, Tag, and API Key.');
+    return;
+  }
+
+  const params = new URLSearchParams({
+    name, tag, key, region, tz,
+    cardColor: colors.cardColor,
+    chipColor: colors.chipColor,
+    textColor: colors.textColor,
+    barColor:  colors.barColor,
+    opacity:   colors.opacity,
+  });
+  const url = `${BASE_URL}/overlay.html?${params.toString()}`;
+
+  document.getElementById('link-url').textContent = url;
+  document.getElementById('link-box').classList.add('visible');
+  document.getElementById('link-hint').style.display = 'block';
+}
+
+function copyLink() {
+  const url = document.getElementById('link-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ── ATTACH LISTENERS ─────────────────────────────────────
+document.getElementById('inp-name').addEventListener('input', onFieldChange);
+document.getElementById('inp-tag').addEventListener('input', onFieldChange);
+document.getElementById('inp-key').addEventListener('input', onFieldChange);
+document.getElementById('inp-region').addEventListener('change', () => {
+  clearTimeout(fetchTimer);
+  fetchTimer = setTimeout(fetchPreview, 200);
+});
+</script>
+</body>
+</html>
